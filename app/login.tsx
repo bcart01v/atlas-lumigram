@@ -1,8 +1,33 @@
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, Pressable, StyleSheet, Image } from 'react-native';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function LoginScreen() {
     const router = useRouter();
+
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const auth = useAuth();
+
+    async function login() {
+        if (!email || !password) {
+            alert('Please fill out all fields.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await auth.login(email, password);
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            alert("Incorrect Email or Password: " + (error.message || "Unknown error"));
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <View style={styles.container}>
@@ -10,15 +35,38 @@ export default function LoginScreen() {
 
             <Text style={styles.loginText}>Login</Text>
 
-            <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" />
-            <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
+            <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+            />
 
-            <Pressable style={styles.signInButton} onPress={() => router.replace('/(tabs)')}>
-                <Text style={styles.signInText}>Sign in</Text>
+            <Pressable
+                style={styles.signInButton}
+                onPress={login}
+                disabled={loading}
+            >
+                <Text style={styles.signInText}>
+                    {loading ? 'Signing In...' : 'Sign in'}
+                </Text>
             </Pressable>
 
-
-            <Pressable style={styles.registerButton} onPress={() => router.replace('/register')}>
+            <Pressable
+                style={styles.registerButton}
+                onPress={() => router.replace('/register')}
+            >
                 <Text style={styles.registerText}>Create a new account</Text>
             </Pressable>
         </View>
