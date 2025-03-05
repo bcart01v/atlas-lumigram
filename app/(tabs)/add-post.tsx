@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import storage from '@/lib/storage';
 import firestore from '@/lib/firestore';
@@ -42,6 +42,7 @@ export default function AddPostScreen() {
               createdBy: auth.user?.uid || '',
             });
             console.log("Post successfully written to Firestore");
+            Alert.alert("Post successful!");
           } catch (firestoreError) {
             console.error("Firestore write error:", firestoreError);
           }
