@@ -3,8 +3,10 @@ import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView, TapGestureHandler, LongPressGestureHandler, State } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { homeFeed } from '../../placeholder';
+import { useAuth } from '../../components/AuthProvider';
 
 export default function HomeScreen() {
+    const auth = useAuth();
   const [visibleCaptions, setVisibleCaptions] = useState<{ [key: string]: boolean }>({});
 
   const handleLongPress = (id: string, state: number) => {

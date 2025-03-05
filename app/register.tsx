@@ -1,20 +1,60 @@
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, Pressable, StyleSheet, Image } from 'react-native';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function RegisterScreen() {
     const router = useRouter();
 
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { registerUser } = useAuth();
+
+    const handleRegister = async () => {
+        if (!email || !password) {
+            alert('Please fill out all fields.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await registerUser(email, password);
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            alert("Unable to create account: " + (error.message || "Unknown error"));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
-             <Image source={require('../assets/images/logo.png')} style={styles.logo} resizeMode='contain' />
+            <Image source={require('../assets/images/logo.png')} style={styles.logo} resizeMode='contain' />
 
             <Text style={styles.registerText}>Register</Text>
 
-            <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" />
-            <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
+            <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+            />
 
-            <Pressable style={styles.createAccountButton} onPress={() => router.replace('/(tabs)')}>
-                <Text style={styles.createAccountText}>Create Account</Text>
+            <Pressable style={styles.createAccountButton} onPress={handleRegister}>
+                <Text style={styles.createAccountText}>
+                    {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
             </Pressable>
 
             <Pressable style={styles.loginButton} onPress={() => router.replace('/login')}>
@@ -36,9 +76,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 120,
         marginBottom: 30
-    },
-    school: {
-        color: '#00C896',
     },
     registerText: {
         fontSize: 20,
@@ -82,6 +119,5 @@ const styles = StyleSheet.create({
     loginText: {
         color: '#fff',
         fontSize: 16,
-        borderWidth: 0,
     },
 });
