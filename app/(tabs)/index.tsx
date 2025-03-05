@@ -1,25 +1,93 @@
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Alert, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { GestureHandlerRootView, TapGestureHandler, LongPressGestureHandler, State } from 'react-native-gesture-handler';
-import { useState } from 'react';
-import { homeFeed } from '../../placeholder';
+import { 
+  GestureHandlerRootView, 
+  TapGestureHandler, 
+  LongPressGestureHandler, 
+  State 
+} from 'react-native-gesture-handler';
 import { useAuth } from '../../components/AuthProvider';
+import { 
+    collection, 
+    query, 
+    orderBy, 
+    limit, 
+    startAfter, 
+    getDocs 
+} from 'firebase/firestore';
+import { db } from '@/firebaseConfig';
 
 export default function HomeScreen() {
     const auth = useAuth();
-  const [visibleCaptions, setVisibleCaptions] = useState<{ [key: string]: boolean }>({});
 
-  const handleLongPress = (id: string, state: number) => {
-    if (state === State.ACTIVE) {
-        console.log(`Long Press Detected on Image ID: ${id}`);
+    const [posts, setPosts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastDoc, setLastDoc] = useState<any>(null);
+    const [visibleCaptions, setVisibleCaptions] = useState<{ [key: string]: boolean }>({});
+    const PAGE_SIZE = 10;
 
-        setVisibleCaptions((prev) => {
-            const updatedCaptions = { ...prev, [id]: !prev[id] };
-            console.log(`Updated State:`, updatedCaptions);
-            return { ...updatedCaptions };
-        });
-    }
-};
+    const fetchPosts = async () => {
+        try {
+            const q = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                limit(PAGE_SIZE)
+            );
+            const querySnapshot = await getDocs(q);
+            const postsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            setPosts(postsData);
+            if (querySnapshot.docs.length > 0) {
+                setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+            } else {
+                setLastDoc(null);
+            }
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchPosts();
+        setRefreshing(false);
+    };
+
+    const fetchMorePosts = async () => {
+        if (!lastDoc) return;
+        try {
+            const postQuery = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastDoc),
+                limit(PAGE_SIZE)
+            );
+            const querySnapshot = await getDocs(postQuery);
+            const morePosts = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            setPosts((prev) => [...prev, ...morePosts]);
+            if (querySnapshot.docs.length > 0) {
+                setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+            } else {
+                setLastDoc(null);
+            }
+        } catch (error) {
+            console.error('Error fetching more posts:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchPosts();
+    }, []);
+
+    const handleLongPress = (id: string, state: number) => {
+        if (state === State.ACTIVE) {
+            setVisibleCaptions((prev) => ({
+                ...prev,
+                [id]: !prev[id],
+            }));
+        }
+    };
 
     const handleDoubleTap = () => {
         Alert.alert('Double Tap Detected', 'This will favorite the image in the next project.');
@@ -34,8 +102,6 @@ export default function HomeScreen() {
                 <TapGestureHandler numberOfTaps={2} onActivated={handleDoubleTap}>
                     <View style={styles.imageContainer}>
                         <Image source={{ uri: item.image }} style={styles.image} />
-                        
-                        {/* Show caption when long pressed */}
                         {visibleCaptions[item.id] && (
                             <View style={styles.captionContainer}>
                                 <Text style={styles.caption}>{item.caption}</Text>
@@ -50,11 +116,15 @@ export default function HomeScreen() {
     return (
         <GestureHandlerRootView style={styles.container}>
            <FlashList
-                data={homeFeed}
+                data={posts}
                 renderItem={renderItem}
                 estimatedItemSize={300}
                 keyExtractor={(item) => item.id}
                 extraData={visibleCaptions}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                onEndReached={fetchMorePosts}
+                onEndReachedThreshold={0.1}
             />
         </GestureHandlerRootView>
     );
