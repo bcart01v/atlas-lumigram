@@ -66,8 +66,9 @@ export default function EditProfileScreen() {
         const { downloadURL } = await storage.upload(profileImage, name);
         imageURL = downloadURL;
       }
+      const username_lowercase = username.toLowerCase();
       const profileRef = doc(db, 'profiles', auth.user.uid);
-      await setDoc(profileRef, { username, profileImage: imageURL }, { merge: true });
+      await setDoc(profileRef, { username, profileImage: imageURL, username_lowercase }, { merge: true });
       Alert.alert("Profile Updated!", "Your changes have been saved.");
       router.back();
     } catch (error) {
